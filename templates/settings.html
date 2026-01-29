@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Paramètres</title>
+  <style>
+    body { margin:0; font-family:system-ui; background:#0b1220; color:#e5e7eb; }
+    main { max-width:720px; margin:30px auto; background:#020617; border:1px solid #1e293b; border-radius:12px; padding:20px; }
+    label { display:block; margin-top:14px; }
+    input, select, button { margin-top:8px; padding:10px; border-radius:8px; border:1px solid #1e293b; background:#0b1220; color:#e5e7eb; width:100%; }
+    button { background:#22c55e; color:#020617; border:none; cursor:pointer; }
+    a { color:#38bdf8; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🖼️ Fond d’écran</h1>
+
+    <form method="post" enctype="multipart/form-data">
+      <label>Mode</label>
+      <select name="bg_mode">
+        <option value="image" {% if cfg.bg_mode == 'image' %}selected{% endif %}>Image</option>
+        <option value="color" {% if cfg.bg_mode == 'color' %}selected{% endif %}>Couleur</option>
+      </select>
+
+      <label>Couleur (si mode couleur)</label>
+      <input type="text" name="bg_color" id="bg_color_hex" value="{{ cfg.bg_color }}" placeholder="#0f172a" pattern="^#([0-9a-fA-F]{6})$" title="#RRGGBB">
+      <label style="margin-top:10px;">Palette rapide</label>
+      <input type="color" name="bg_color_picker" id="bg_color_picker" value="{{ cfg.bg_color }}" style="padding:0; height:48px; width:100%;">
+
+      <div style="margin-top:12px;">
+        <span style="display:block; margin-bottom:6px; color:#94a3b8;">Couleurs récentes</span>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          {% for col in cfg.bg_history %}
+            <button type="button"
+                    class="history-btn"
+                    data-color="{{ col }}"
+                    style="width:44px; height:44px; border-radius:10px; border:1px solid #1e293b; background: {{ col }}; cursor:pointer;"
+                    aria-label="Choisir {{ col }}">
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <label>Uploader une image (jpg/png/webp)</label>
+      <input type="file" name="bg_file" accept=".jpg,.jpeg,.png,.webp">
+
+      {% if cfg.bg_image %}
+        <p style="margin-top:10px; font-size:0.9em; color:#94a3b8;">Image actuelle : {{ cfg.bg_image }}</p>
+      {% endif %}
+
+      <button type="submit">Enregistrer</button>
+    </form>
+
+    <p style="margin-top:14px;"><a href="/">← Retour</a></p>
+  </main>
+  <a href="/settings"
+   title="Changer le fond"
+   style="
+     position: fixed;
+     top: 12px;
+     right: 12px;
+     font-size: 22px;
+     text-decoration: none;
+     background: rgba(0,0,0,0.6);
+     padding: 8px 10px;
+     border-radius: 10px;
+     z-index: 1000;
+   ">
+  🖼️
+</a>
+
+<script>
+  const hexInput = document.getElementById('bg_color_hex');
+  const picker = document.getElementById('bg_color_picker');
+  const buttons = document.querySelectorAll('.history-btn');
+
+  picker?.addEventListener('input', (e) => {
+    hexInput.value = e.target.value;
+  });
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const col = btn.dataset.color;
+      hexInput.value = col;
+      picker.value = col;
+    });
+  });
+</script>
+
+</body>
+</html>
