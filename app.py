@@ -209,10 +209,23 @@ def allowed_file(filename: str) -> bool:
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     return ext in ALLOWED_EXT
 
+def list_backgrounds():
+    ensure_dirs()
+    bgs = []
+    try:
+        for name in sorted(os.listdir(BACKGROUND_DIR)):
+            path = os.path.join(BACKGROUND_DIR, name)
+            if os.path.isfile(path) and allowed_file(name):
+                bgs.append(f"/static/backgrounds/{name}")
+    except Exception:
+        pass
+    return bgs
+
 @app.route("/settings", methods=["GET", "POST"])
 def settings():
     ensure_dirs()
     cfg = load_config()
+    backgrounds = list_backgrounds()
 
     if request.method == "POST":
         mode = request.form.get("bg_mode", "color")
@@ -220,10 +233,16 @@ def settings():
         color_txt = request.form.get("bg_color", "").strip()
         color_pick = request.form.get("bg_color_picker", "").strip()
         color = color_txt or color_pick or "#0f172a"
+        selected_bg = request.form.get("bg_choice", "")
 
         # normalisation simple : doit commencer par # et être long de 7 caractères (#RRGGBB)
         if not (color.startswith("#") and len(color) == 7):
             color = "#0f172a"
+
+        # Choisir une image existante
+        if selected_bg and selected_bg in backgrounds:
+            cfg["bg_image"] = selected_bg
+            mode = "image"
 
         # Upload image (optional)
         f = request.files.get("bg_file")
@@ -238,6 +257,7 @@ def settings():
                 f.save(dest)
                 cfg["bg_image"] = f"/static/backgrounds/{saved}"
                 mode = "image"  # si on upload, on bascule image
+                backgrounds = list_backgrounds()
             else:
                 # extension refusée, on ignore l'upload
                 pass
@@ -251,7 +271,13 @@ def settings():
         save_config(cfg)
         return redirect("/")
 
-    return render_template("settings.html", cfg=cfg)
+    return render_template("settings.html", cfg=cfg, err=request.args.get("err"), backgrounds=backgrounds)
+
+
+@app.errorhandler(413)
+def too_large(e):
+    # Redirige vers les paramètres avec un message explicite
+    return redirect("/settings?err=too_large")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)

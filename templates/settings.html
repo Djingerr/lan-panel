@@ -16,7 +16,13 @@
   <main>
     <h1>🖼️ Fond d’écran</h1>
 
-    <form method="post" enctype="multipart/form-data">
+    {% if err == 'too_large' %}
+      <div style="background:#33111a; border:1px solid #ef4444; color:#fecdd3; padding:12px; border-radius:10px; margin-bottom:14px;">
+        Image trop volumineuse (max 5 Mo). Choisis une image plus légère.
+      </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" id="bg_form">
       <label>Mode</label>
       <select name="bg_mode">
         <option value="image" {% if cfg.bg_mode == 'image' %}selected{% endif %}>Image</option>
@@ -42,8 +48,26 @@
         </div>
       </div>
 
-      <label>Uploader une image (jpg/png/webp)</label>
-      <input type="file" name="bg_file" accept=".jpg,.jpeg,.png,.webp">
+      <label>Uploader une image (jpg/png/webp) — max 5 Mo</label>
+      <input type="file" name="bg_file" id="bg_file" accept=".jpg,.jpeg,.png,.webp">
+      <div id="file_err" style="display:none; margin-top:6px; color:#fca5a5; font-size:0.9em;">Fichier trop volumineux (max 5 Mo).</div>
+
+      {% if backgrounds %}
+        <div style="margin-top:18px;">
+          <span style="display:block; margin-bottom:8px;">Fonds déjà importés</span>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px;">
+            {% for bg in backgrounds %}
+              <label style="display:block; cursor:pointer; border:1px solid #1e293b; border-radius:12px; overflow:hidden; background:#0f172a;">
+                <input type="radio" name="bg_choice" value="{{ bg }}" {% if cfg.bg_image == bg %}checked{% endif %} style="display:none;">
+                <div style="height:90px; background:url('{{ bg }}') center/cover no-repeat;"></div>
+                <div style="padding:8px 10px; font-size:0.85em; color:#cbd5e1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                  {{ bg.split('/')[-1] }}
+                </div>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
 
       {% if cfg.bg_image %}
         <p style="margin-top:10px; font-size:0.9em; color:#94a3b8;">Image actuelle : {{ cfg.bg_image }}</p>
@@ -74,6 +98,10 @@
   const hexInput = document.getElementById('bg_color_hex');
   const picker = document.getElementById('bg_color_picker');
   const buttons = document.querySelectorAll('.history-btn');
+  const form = document.getElementById('bg_form');
+  const fileInput = document.getElementById('bg_file');
+  const fileErr = document.getElementById('file_err');
+  const MAX = 5 * 1024 * 1024; // 5 Mo
 
   picker?.addEventListener('input', (e) => {
     hexInput.value = e.target.value;
@@ -85,6 +113,16 @@
       hexInput.value = col;
       picker.value = col;
     });
+  });
+
+  form?.addEventListener('submit', (e) => {
+    fileErr.style.display = 'none';
+    const f = fileInput?.files?.[0];
+    if (f && f.size > MAX) {
+      e.preventDefault();
+      fileErr.style.display = 'block';
+      fileInput.value = '';
+    }
   });
 </script>
 
