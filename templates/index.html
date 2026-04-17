@@ -1,215 +1,141 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>LAN Control Panel</title>
+<meta charset="UTF-8">
+<title>LAN Panel</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      color: #e5e7eb;
+<style>
+body {
+  margin:0;
+  font-family:system-ui;
+  color:#e5e7eb;
 
-      {% if cfg.bg_mode == 'image' %}
-        background-image: url("{{ cfg.bg_image }}");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-      {% else %}
-        background: {{ cfg.bg_color }};
-      {% endif %}
+  {% if cfg.bg_mode == 'image' %}
+  background:url("{{ cfg.bg_image }}") center/cover fixed;
+  {% else %}
+  background:{{ cfg.bg_color }};
+  {% endif %}
 }
 
-    header {
-      background: #020617;
-      padding: 20px;
-      text-align: center;
-      border-bottom: 1px solid #1e293b;
-    }
+.overlay {
+  background:rgba(2,6,23,0.75);
+  min-height:100vh;
+}
 
-    header h1 {
-      margin: 0;
-      font-size: 1.8em;
-      color: #38bdf8;
-    }
+header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:20px;
+  border-bottom:1px solid #1e293b;
+}
 
-    main {
-      padding: 30px;
-      max-width: 1100px;
-      margin: auto;
-    }
+h1 { margin:0; color:#38bdf8; }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 20px;
-    }
+.summary {
+  display:flex;
+  gap:20px;
+  padding:20px;
+}
 
-    .card {
-      background: #020617;
-      border: 1px solid #1e293b;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    }
+.box {
+  background:#020617;
+  padding:15px;
+  border-radius:10px;
+  border:1px solid #1e293b;
+}
 
-    .card h2 {
-      margin-top: 0;
-      margin-bottom: 10px;
-      font-size: 1.2em;
-    }
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:20px;
+  padding:20px;
+}
 
-    .status {
-      font-weight: bold;
-      margin-bottom: 15px;
-    }
+.card {
+  background:#020617;
+  border-radius:12px;
+  padding:18px;
+  border:1px solid #1e293b;
+}
 
-    .on {
-      color: #22c55e;
-    }
+.status {
+  font-weight:bold;
+}
 
-    .off {
-      color: #ef4444;
-    }
+.on { color:#22c55e; }
+.off { color:#ef4444; }
 
-    .actions a {
-      display: inline-block;
-      margin-right: 8px;
-      margin-bottom: 8px;
-      padding: 8px 14px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-size: 0.9em;
-      color: #020617;
-      background: #38bdf8;
-    }
+.actions a {
+  display:inline-block;
+  margin-top:10px;
+  margin-right:6px;
+  padding:6px 10px;
+  border-radius:6px;
+  text-decoration:none;
+  font-size:0.85em;
+  background:#38bdf8;
+  color:black;
+}
 
-    .actions a.off-btn {
-      background: #f97316;
-    }
+.actions a.off-btn { background:#f97316; }
+.actions a.del-btn { background:#ef4444; color:white; }
 
-    .actions a.del-btn {
-      background: #ef4444;
-      color: white;
-    }
+.graph {
+  margin-top:10px;
+}
 
-    .actions a:hover {
-      opacity: 0.85;
-    }
+.small {
+  font-size:0.8em;
+  color:#94a3b8;
+}
 
-    .add-box {
-      margin-top: 40px;
-      background: #020617;
-      border: 1px solid #1e293b;
-      border-radius: 12px;
-      padding: 20px;
-    }
-
-    .add-box h2 {
-      margin-top: 0;
-    }
-
-    form {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 10px;
-    }
-
-    input, button {
-      padding: 10px;
-      border-radius: 6px;
-      border: none;
-      font-size: 0.9em;
-    }
-
-    input {
-      background: #020617;
-      color: #e5e7eb;
-      border: 1px solid #1e293b;
-    }
-
-    button {
-      background: #22c55e;
-      color: #020617;
-      cursor: pointer;
-    }
-
-    button:hover {
-      opacity: 0.9;
-    }
-
-    footer {
-      text-align: center;
-      padding: 15px;
-      font-size: 0.8em;
-      color: #64748b;
-    }
-  </style>
+</style>
 </head>
 
 <body>
+<div class="overlay">
 
 <header>
-  <h1>🌐 LAN Control Panel</h1>
-  <a href="/settings"
-     title="Changer le fond"
-     style="
-       position: fixed;
-       top: 14px;
-       right: 14px;
-       font-size: 22px;
-       text-decoration: none;
-       background: rgba(0,0,0,0.55);
-       padding: 8px 10px;
-       border-radius: 10px;
-       z-index: 1000;
-     ">
-    🖼️
-  </a>
+  <h1>🌐 LAN Panel</h1>
+  <div>
+    <a href="/settings">🖼️</a>
+  </div>
 </header>
 
-<main>
+<div class="summary">
+  <div class="box">Machines: {{ summary.total }}</div>
+  <div class="box">En ligne: {{ summary.online }}</div>
+  <div class="box">Hors ligne: {{ summary.offline }}</div>
+  <div class="box">MAJ: {{ summary.updated_at }}</div>
+</div>
 
-  <div class="grid">
-    {% for m in machines %}
-    <div class="card">
-      <h2>{{ m.name }}</h2>
+<div class="grid">
+{% for m in machines %}
+  <div class="card">
+    <h2>{{ m.name }}</h2>
 
-      {% if m.status == 'ON' %}
-	<div class="status on">🟢 EN LIGNE</div>
-      {% else %}
-	<div class="status off">🔴 HORS LIGNE</div>
-      {% endif %}
-      <img src="/history/{{ m.name | replace(' ', '_') }}.svg"
-         alt="Historique"
-         style="margin-top:10px; width:100%; height:40px; object-fit:contain; image-rendering:crisp-edges; background:rgba(2,6,23,0.6); border-radius:6px;">
+    {% if m.status == 'ON' %}
+      <div class="status on">🟢 ON</div>
+    {% else %}
+      <div class="status off">🔴 OFF</div>
+    {% endif %}
 
-      <div class="actions">
-        <a href="/wake/{{ m.name }}">Allumer</a>
-        <a href="/shutdown/{{ m.name }}" class="off-btn">Éteindre</a>
-        <a href="/delete/{{ m.name }}" class="del-btn">Supprimer</a>
-      </div>
+    <div class="small">{{ m.last_transition }}</div>
+
+    <div class="graph">
+      <img src="/history/{{ m.name | replace(' ', '_') }}.svg" style="width:100%;">
     </div>
-    {% endfor %}
+
+    <div class="actions">
+      <a href="/wake/{{ m.name }}">Allumer</a>
+      <a href="/shutdown/{{ m.name }}" class="off-btn">Éteindre</a>
+      <a href="/delete/{{ m.name }}" class="del-btn">Supprimer</a>
+    </div>
   </div>
+{% endfor %}
+</div>
 
-  <div class="add-box">
-    <h2>➕ Ajouter une machine</h2>
-
-    <form method="post" action="/add">
-      <input name="name" placeholder="Nom">
-      <input name="ip" placeholder="IP">
-      <input name="mac" placeholder="MAC">
-      <input name="ssh_user" placeholder="Utilisateur SSH">
-      <button>Ajouter</button>
-    </form>
-  </div>
-
-</main>
-
-<footer>
-  Raspberry Pi • DietPi • Tailscale • Flask
-</footer>
-
+</div>
 </body>
 </html>
