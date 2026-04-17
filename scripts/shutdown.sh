@@ -2,17 +2,24 @@
 
 USER="$1"
 IP="$2"
+OS_TYPE="$3"
 
-# On force :
-# - pas d'interaction
-# - timeout court
-# - pas de blocage
+if [ -z "$OS_TYPE" ]; then
+  OS_TYPE="linux"
+fi
+
+if [ "$OS_TYPE" = "windows" ]; then
+  REMOTE_CMD='shutdown /s /t 0'
+else
+  REMOTE_CMD='sudo /sbin/shutdown now'
+fi
+
 ssh \
   -o BatchMode=yes \
-  -o ConnectTimeout=3 \
+  -o ConnectTimeout=5 \
   -o StrictHostKeyChecking=no \
   "$USER@$IP" \
-  shutdown now \
+  "$REMOTE_CMD" \
   >/dev/null 2>&1 &
 
 exit 0

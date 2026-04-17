@@ -176,12 +176,17 @@ def shutdown(name):
         if m.get("name") == name:
             try:
                 subprocess.Popen(
-                    [f"{APP_DIR}/scripts/shutdown.sh", m.get("ssh_user", ""), m.get("ip", "")],
+                    [
+                        f"{APP_DIR}/scripts/shutdown.sh",
+                        m.get("ssh_user", ""),
+                        m.get("ip", ""),
+                        m.get("os", "linux")
+                    ],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Shutdown error for {name}: {e}")
     return redirect("/")
 
 @app.route("/add", methods=["POST"])
