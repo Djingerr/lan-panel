@@ -1,215 +1,786 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>LAN Control Panel</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAN Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      color: #e5e7eb;
-
-      {% if cfg.bg_mode == 'image' %}
-        background-image: url("{{ cfg.bg_image }}");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-      {% else %}
-        background: {{ cfg.bg_color }};
-      {% endif %}
+:root {
+  --cyan: #22d3ee;
+  --cyan-dim: rgba(34,211,238,0.08);
+  --cyan-border: rgba(34,211,238,0.2);
+  --green: #4ade80;
+  --green-dim: rgba(74,222,128,0.08);
+  --green-border: rgba(74,222,128,0.25);
+  --red: #f87171;
+  --red-dim: rgba(248,113,113,0.08);
+  --red-border: rgba(248,113,113,0.25);
+  --amber: #fbbf24;
+  --surface: rgba(10,18,40,0.75);
+  --surface-2: rgba(15,25,55,0.6);
+  --border: rgba(255,255,255,0.06);
+  --border-strong: rgba(255,255,255,0.11);
+  --text: #e2e8f0;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --font-body: 'Sora', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --r: 14px;
+  --r-sm: 8px;
+  --r-lg: 20px;
 }
 
-    header {
-      background: #020617;
-      padding: 20px;
-      text-align: center;
-      border-bottom: 1px solid #1e293b;
-    }
+body {
+  font-family: var(--font-body);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  {% if cfg.bg_mode == 'image' %}
+  background: url("{{ cfg.bg_image }}") center/cover fixed;
+  {% else %}
+  background: {{ cfg.bg_color }};
+  {% endif %}
+}
 
-    header h1 {
-      margin: 0;
-      font-size: 1.8em;
-      color: #38bdf8;
-    }
+.overlay {
+  min-height: 100vh;
+  background: rgba(4,9,24,0.84);
+  backdrop-filter: blur(1px);
+}
 
-    main {
-      padding: 30px;
-      max-width: 1100px;
-      margin: auto;
-    }
+/* ── HEADER ── */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  height: 60px;
+  background: rgba(4,9,24,0.92);
+  border-bottom: 1px solid var(--border-strong);
+  backdrop-filter: blur(24px);
+}
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 20px;
-    }
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
 
-    .card {
-      background: #020617;
-      border: 1px solid #1e293b;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    }
+.logo-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--cyan-dim);
+  border: 1px solid var(--cyan-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-    .card h2 {
-      margin-top: 0;
-      margin-bottom: 10px;
-      font-size: 1.2em;
-    }
+.logo-mark svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--cyan);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
-    .status {
-      font-weight: bold;
-      margin-bottom: 15px;
-    }
+h1 {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
 
-    .on {
-      color: #22c55e;
-    }
+h1 span {
+  color: var(--cyan);
+}
 
-    .off {
-      color: #ef4444;
-    }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-    .actions a {
-      display: inline-block;
-      margin-right: 8px;
-      margin-bottom: 8px;
-      padding: 8px 14px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-size: 0.9em;
-      color: #020617;
-      background: #38bdf8;
-    }
+.uptime-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  background: var(--green-dim);
+  border: 1px solid var(--green-border);
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  color: var(--green);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
 
-    .actions a.off-btn {
-      background: #f97316;
-    }
+.uptime-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse-green 2s infinite;
+}
 
-    .actions a.del-btn {
-      background: #ef4444;
-      color: white;
-    }
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(74,222,128,0); }
+}
 
-    .actions a:hover {
-      opacity: 0.85;
-    }
+.settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  text-decoration: none;
+  color: var(--text-dim);
+  transition: all 0.2s;
+}
+.settings-btn:hover {
+  color: var(--cyan);
+  border-color: var(--cyan-border);
+  background: var(--cyan-dim);
+}
+.settings-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
-    .add-box {
-      margin-top: 40px;
-      background: #020617;
-      border: 1px solid #1e293b;
-      border-radius: 12px;
-      padding: 20px;
-    }
+/* ── MAIN LAYOUT ── */
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+}
 
-    .add-box h2 {
-      margin-top: 0;
-    }
+/* ── SUMMARY STRIP ── */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
 
-    form {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 10px;
-    }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  padding: 16px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
 
-    input, button {
-      padding: 10px;
-      border-radius: 6px;
-      border: none;
-      font-size: 0.9em;
-    }
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: var(--r) var(--r) 0 0;
+}
 
-    input {
-      background: #020617;
-      color: #e5e7eb;
-      border: 1px solid #1e293b;
-    }
+.stat-card.total::before { background: var(--cyan); }
+.stat-card.online::before { background: var(--green); }
+.stat-card.offline::before { background: var(--red); }
+.stat-card.time::before { background: var(--amber); }
 
-    button {
-      background: #22c55e;
-      color: #020617;
-      cursor: pointer;
-    }
+.stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
 
-    button:hover {
-      opacity: 0.9;
-    }
+.stat-value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+  font-family: var(--font-mono);
+}
 
-    footer {
-      text-align: center;
-      padding: 15px;
-      font-size: 0.8em;
-      color: #64748b;
-    }
-  </style>
+.stat-card.total .stat-value { color: var(--cyan); }
+.stat-card.online .stat-value { color: var(--green); }
+.stat-card.offline .stat-value { color: var(--red); }
+.stat-card.time .stat-value { font-size: 0.82rem; color: var(--amber); margin-top: 4px; }
+
+.stat-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ── SECTION HEADER ── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.machine-count {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 2px 10px;
+}
+
+/* ── ADD MACHINE ── */
+.add-section {
+  margin-bottom: 28px;
+}
+
+.add-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--r-sm);
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.add-toggle-btn:hover {
+  border-color: var(--cyan-border);
+  color: var(--cyan);
+  background: var(--cyan-dim);
+}
+.add-toggle-btn svg {
+  width: 14px; height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.add-form {
+  display: none;
+  margin-top: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  padding: 20px;
+}
+
+.add-form.open { display: block; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.form-field input {
+  background: rgba(4,9,24,0.7);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.form-field input:focus {
+  border-color: var(--cyan-border);
+}
+
+.form-field input::placeholder {
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+
+.btn-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: var(--cyan);
+  color: #040918;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.btn-submit:hover { opacity: 0.9; }
+.btn-submit:active { transform: scale(0.98); }
+
+/* ── MACHINE GRID ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+/* ── MACHINE CARD ── */
+.card {
+  background: var(--surface);
+  border-radius: var(--r);
+  border: 1px solid var(--border-strong);
+  overflow: hidden;
+  transition: border-color 0.25s, transform 0.2s;
+  animation: fadeUp 0.4s ease both;
+}
+
+.card:hover {
+  border-color: rgba(255,255,255,0.16);
+  transform: translateY(-2px);
+}
+
+.card.card-on { border-top: 2px solid var(--green); }
+.card.card-off { border-top: 2px solid rgba(248,113,113,0.4); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+}
+
+.card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.on {
+  background: var(--green);
+  box-shadow: 0 0 8px rgba(74,222,128,0.6);
+  animation: pulse-green 2.5s infinite;
+}
+
+.status-dot.off {
+  background: var(--red);
+  opacity: 0.6;
+}
+
+.card-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.status-badge.on {
+  background: var(--green-dim);
+  border: 1px solid var(--green-border);
+  color: var(--green);
+}
+
+.status-badge.off {
+  background: var(--red-dim);
+  border: 1px solid var(--red-border);
+  color: var(--red);
+}
+
+.card-meta {
+  padding: 0 18px 12px;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.meta-row svg {
+  width: 11px; height: 11px;
+  stroke: var(--text-dim);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.transition-info {
+  margin-top: 5px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.transition-info svg {
+  width: 11px; height: 11px;
+  stroke: var(--text-dim);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── GRAPH ── */
+.graph-wrap {
+  padding: 0 14px;
+  margin-bottom: 4px;
+}
+
+.graph-wrap img {
+  width: 100%;
+  border-radius: var(--r-sm);
+  display: block;
+}
+
+/* ── CARD ACTIONS ── */
+.card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 14px 18px 16px;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: all 0.18s;
+  flex: 1;
+  justify-content: center;
+}
+
+.action-btn svg {
+  width: 13px; height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.btn-wake {
+  background: var(--green-dim);
+  border-color: var(--green-border);
+  color: var(--green);
+}
+.btn-wake:hover {
+  background: rgba(74,222,128,0.16);
+}
+
+.btn-shutdown {
+  background: rgba(251,191,36,0.07);
+  border-color: rgba(251,191,36,0.22);
+  color: var(--amber);
+}
+.btn-shutdown:hover {
+  background: rgba(251,191,36,0.14);
+}
+
+.btn-delete {
+  background: var(--red-dim);
+  border-color: var(--red-border);
+  color: var(--red);
+  flex: 0 0 auto;
+  padding: 8px 12px;
+}
+.btn-delete:hover {
+  background: rgba(248,113,113,0.16);
+}
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 64px 20px;
+  color: var(--text-muted);
+}
+
+.empty-state svg {
+  width: 48px; height: 48px;
+  stroke: var(--text-dim);
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.empty-state p {
+  font-size: 0.8rem;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 680px) {
+  header { padding: 0 16px; }
+  h1 { font-size: 0.9rem; }
+
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card { padding: 14px 16px; }
+  .stat-value { font-size: 1.6rem; }
+  .stat-card.time .stat-value { font-size: 0.75rem; }
+
+  main { padding: 20px 14px 50px; }
+
+  .grid { grid-template-columns: 1fr; gap: 12px; }
+
+  .form-grid { grid-template-columns: 1fr; }
+
+  .uptime-badge { display: none; }
+
+  .card-actions { flex-wrap: wrap; }
+  .action-btn { font-size: 0.75rem; }
+}
+
+@media (max-width: 400px) {
+  .summary { grid-template-columns: 1fr 1fr; }
+  .stat-value { font-size: 1.4rem; }
+}
+</style>
 </head>
 
 <body>
+<div class="overlay">
 
+<!-- HEADER -->
 <header>
-  <h1>🌐 LAN Control Panel</h1>
-  <a href="/settings"
-     title="Changer le fond"
-     style="
-       position: fixed;
-       top: 14px;
-       right: 14px;
-       font-size: 22px;
-       text-decoration: none;
-       background: rgba(0,0,0,0.55);
-       padding: 8px 10px;
-       border-radius: 10px;
-       z-index: 1000;
-     ">
-    🖼️
-  </a>
+  <div class="header-left">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    </div>
+    <h1>LAN <span>Panel</span></h1>
+  </div>
+
+  <div class="header-right">
+    {% if summary.online > 0 %}
+    <div class="uptime-badge">
+      <span class="dot"></span>
+      {{ summary.online }}/{{ summary.total }} EN LIGNE
+    </div>
+    {% endif %}
+    <a href="/settings" class="settings-btn" title="Paramètres">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </a>
+  </div>
 </header>
 
 <main>
 
-  <div class="grid">
-    {% for m in machines %}
-    <div class="card">
-      <h2>{{ m.name }}</h2>
-
-      {% if m.status == 'ON' %}
-	<div class="status on">🟢 EN LIGNE</div>
-      {% else %}
-	<div class="status off">🔴 HORS LIGNE</div>
-      {% endif %}
-      <img src="/history/{{ m.name | replace(' ', '_') }}.svg"
-         alt="Historique"
-         style="margin-top:10px; width:100%; height:40px; object-fit:contain; image-rendering:crisp-edges; background:rgba(2,6,23,0.6); border-radius:6px;">
-
-      <div class="actions">
-        <a href="/wake/{{ m.name }}">Allumer</a>
-        <a href="/shutdown/{{ m.name }}" class="off-btn">Éteindre</a>
-        <a href="/delete/{{ m.name }}" class="del-btn">Supprimer</a>
-      </div>
+  <!-- SUMMARY STATS -->
+  <div class="summary">
+    <div class="stat-card total">
+      <div class="stat-label">Machines</div>
+      <div class="stat-value">{{ summary.total }}</div>
+      <div class="stat-sub">sur le réseau</div>
     </div>
-    {% endfor %}
+    <div class="stat-card online">
+      <div class="stat-label">En ligne</div>
+      <div class="stat-value">{{ summary.online }}</div>
+      <div class="stat-sub">actives maintenant</div>
+    </div>
+    <div class="stat-card offline">
+      <div class="stat-label">Hors ligne</div>
+      <div class="stat-value">{{ summary.offline }}</div>
+      <div class="stat-sub">éteintes</div>
+    </div>
+    <div class="stat-card time">
+      <div class="stat-label">Mise à jour</div>
+      <div class="stat-value">{{ summary.updated_at }}</div>
+    </div>
   </div>
 
-  <div class="add-box">
-    <h2>➕ Ajouter une machine</h2>
+  <!-- ADD MACHINE -->
+  <div class="add-section">
+    <div class="section-header">
+      <span class="section-title">Machines</span>
+      <span class="machine-count">{{ summary.total }}</span>
+    </div>
 
-    <form method="post" action="/add">
-      <input name="name" placeholder="Nom">
-      <input name="ip" placeholder="IP">
-      <input name="mac" placeholder="MAC">
-      <input name="ssh_user" placeholder="Utilisateur SSH">
-      <button>Ajouter</button>
-    </form>
+    <button class="add-toggle-btn" onclick="document.getElementById('addForm').classList.toggle('open')">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Ajouter une machine
+    </button>
+
+    <div class="add-form" id="addForm">
+      <form method="post" action="/add">
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Nom</label>
+            <input type="text" name="name" placeholder="ex: PC-Bureau" required>
+          </div>
+          <div class="form-field">
+            <label>Adresse IP</label>
+            <input type="text" name="ip" placeholder="192.168.1.x" required>
+          </div>
+          <div class="form-field">
+            <label>Adresse MAC</label>
+            <input type="text" name="mac" placeholder="AA:BB:CC:DD:EE:FF">
+          </div>
+          <div class="form-field">
+            <label>Utilisateur SSH</label>
+            <input type="text" name="ssh_user" placeholder="pi">
+          </div>
+        </div>
+        <button type="submit" class="btn-submit">
+          <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Ajouter
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MACHINE GRID -->
+  <div class="grid">
+    {% if machines %}
+      {% for m in machines %}
+      <div class="card card-{{ m.status | lower }}" style="animation-delay: {{ loop.index0 * 0.06 }}s">
+
+        <div class="card-header">
+          <div class="card-name-row">
+            <span class="status-dot {{ m.status | lower }}"></span>
+            <span class="card-name">{{ m.name }}</span>
+          </div>
+          <span class="status-badge {{ m.status | lower }}">
+            {{ m.status }}
+          </span>
+        </div>
+
+        <div class="card-meta">
+          <div class="meta-row">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            {{ m.ip }}
+          </div>
+          <div class="transition-info">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {{ m.last_transition }}
+          </div>
+        </div>
+
+        <div class="graph-wrap">
+          <img src="/history/{{ m.name | replace(' ', '_') }}.svg" alt="Historique {{ m.name }}" loading="lazy">
+        </div>
+
+        <div class="card-actions">
+          <a href="/wake/{{ m.name }}" class="action-btn btn-wake">
+            <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Allumer
+          </a>
+          <a href="/shutdown/{{ m.name }}" class="action-btn btn-shutdown"
+             onclick="return confirm('Éteindre {{ m.name }} ?')">
+            <svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+            Éteindre
+          </a>
+          <a href="/delete/{{ m.name }}" class="action-btn btn-delete"
+             onclick="return confirm('Supprimer {{ m.name }} ?')" title="Supprimer">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          </a>
+        </div>
+
+      </div>
+      {% endfor %}
+
+    {% else %}
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        <h3>Aucune machine configurée</h3>
+        <p>Ajoutez votre première machine pour commencer.</p>
+      </div>
+    {% endif %}
   </div>
 
 </main>
-
-<footer>
-  Raspberry Pi • DietPi • Tailscale • Flask
-</footer>
-
+</div>
 </body>
 </html>

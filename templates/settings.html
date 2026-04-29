@@ -1,129 +1,603 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Paramètres</title>
-  <style>
-    body { margin:0; font-family:system-ui; background:#0b1220; color:#e5e7eb; }
-    main { max-width:720px; margin:30px auto; background:#020617; border:1px solid #1e293b; border-radius:12px; padding:20px; }
-    label { display:block; margin-top:14px; }
-    input, select, button { margin-top:8px; padding:10px; border-radius:8px; border:1px solid #1e293b; background:#0b1220; color:#e5e7eb; width:100%; }
-    button { background:#22c55e; color:#020617; border:none; cursor:pointer; }
-    a { color:#38bdf8; text-decoration:none; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAN Panel — Paramètres</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --cyan: #22d3ee;
+  --cyan-dim: rgba(34,211,238,0.08);
+  --cyan-border: rgba(34,211,238,0.2);
+  --green: #4ade80;
+  --green-dim: rgba(74,222,128,0.08);
+  --green-border: rgba(74,222,128,0.25);
+  --red: #f87171;
+  --red-dim: rgba(248,113,113,0.08);
+  --red-border: rgba(248,113,113,0.25);
+  --amber: #fbbf24;
+  --surface: rgba(10,18,40,0.85);
+  --surface-2: rgba(15,25,55,0.6);
+  --border: rgba(255,255,255,0.06);
+  --border-strong: rgba(255,255,255,0.11);
+  --text: #e2e8f0;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --font-body: 'Sora', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --r: 14px;
+  --r-sm: 8px;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--text);
+  min-height: 100vh;
+  background: #04091a;
+}
+
+/* ── HEADER ── */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px;
+  height: 60px;
+  background: rgba(4,9,24,0.95);
+  border-bottom: 1px solid var(--border-strong);
+  backdrop-filter: blur(24px);
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  text-decoration: none;
+  color: var(--text-dim);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.back-btn:hover { color: var(--cyan); border-color: var(--cyan-border); background: var(--cyan-dim); }
+.back-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+.header-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.header-title span { color: var(--text-muted); font-weight: 400; }
+
+/* ── LAYOUT ── */
+main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+
+/* ── ERROR BANNER ── */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--red-dim);
+  border: 1px solid var(--red-border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  font-size: 0.85rem;
+  color: var(--red);
+}
+.error-banner svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; flex-shrink: 0; }
+
+/* ── CARDS ── */
+.settings-card {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.card-section-title {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-section-title svg {
+  width: 13px; height: 13px;
+  stroke: var(--text-dim);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.card-body { padding: 20px; }
+
+/* ── FORM ELEMENTS ── */
+.field { margin-bottom: 18px; }
+.field:last-child { margin-bottom: 0; }
+
+.field label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.field input[type="text"],
+.field select {
+  width: 100%;
+  background: rgba(4,9,24,0.7);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+  appearance: none;
+}
+.field input[type="text"]:focus,
+.field select:focus { border-color: var(--cyan-border); }
+
+.select-wrap { position: relative; }
+.select-wrap svg {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px; height: 13px;
+  stroke: var(--text-dim);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+/* ── MODE TOGGLE ── */
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.mode-option {
+  position: relative;
+}
+
+.mode-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0; height: 0;
+}
+
+.mode-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: rgba(4,9,24,0.5);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mode-label svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.mode-option input:checked + .mode-label {
+  border-color: var(--cyan-border);
+  background: var(--cyan-dim);
+  color: var(--cyan);
+}
+
+/* ── COLOR PICKER AREA ── */
+.color-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.color-row input[type="text"] {
+  flex: 1;
+  font-family: var(--font-mono);
+}
+
+.color-swatch-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.color-swatch-wrap input[type="color"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.color-swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  transition: border-color 0.2s;
+  pointer-events: none;
+}
+
+/* ── HISTORY SWATCHES ── */
+.history-swatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.history-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.history-swatch:hover { transform: scale(1.12); border-color: rgba(255,255,255,0.3); }
+
+/* ── FILE UPLOAD ── */
+.file-upload-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--r-sm);
+  border: 1px dashed var(--border-strong);
+  background: rgba(4,9,24,0.5);
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+.file-upload-label:hover {
+  border-color: var(--cyan-border);
+  color: var(--cyan);
+  background: var(--cyan-dim);
+}
+.file-upload-label svg {
+  width: 16px; height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.file-upload-label input[type="file"] {
+  display: none;
+}
+
+.file-name {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--cyan);
+  margin-top: 6px;
+}
+
+.file-error {
+  display: none;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--red);
+  background: var(--red-dim);
+  border: 1px solid var(--red-border);
+  border-radius: var(--r-sm);
+  padding: 8px 12px;
+}
+
+/* ── BACKGROUND GRID ── */
+.bg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.bg-option {
+  position: relative;
+  cursor: pointer;
+}
+
+.bg-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0; height: 0;
+}
+
+.bg-thumb {
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: border-color 0.2s, transform 0.15s;
+  background: var(--surface-2);
+}
+
+.bg-option input:checked + .bg-thumb {
+  border-color: var(--cyan);
+}
+
+.bg-thumb:hover { transform: scale(1.03); }
+
+.bg-img {
+  height: 80px;
+  background-size: cover;
+  background-position: center;
+}
+
+.bg-filename {
+  padding: 6px 8px;
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.current-bg-path {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  background: rgba(4,9,24,0.5);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  word-break: break-all;
+}
+
+/* ── SUBMIT BUTTON ── */
+.btn-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: var(--cyan);
+  color: #04091a;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: 24px;
+}
+.btn-save:hover { opacity: 0.9; }
+.btn-save:active { transform: scale(0.99); }
+.btn-save svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 480px) {
+  header { padding: 0 14px; }
+  main { padding: 20px 14px 50px; }
+  .bg-grid { grid-template-columns: repeat(2, 1fr); }
+  .mode-toggle { grid-template-columns: 1fr 1fr; }
+}
+</style>
 </head>
+
 <body>
-  <main>
-    <h1>🖼️ Fond d’écran</h1>
 
-    {% if err == 'too_large' %}
-      <div style="background:#33111a; border:1px solid #ef4444; color:#fecdd3; padding:12px; border-radius:10px; margin-bottom:14px;">
-        Image trop volumineuse (max 5 Mo). Choisis une image plus légère.
+<header>
+  <a href="/" class="back-btn" title="Retour">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </a>
+  <span class="header-title">Paramètres <span>/ Apparence</span></span>
+</header>
+
+<main>
+
+  {% if err == 'too_large' %}
+  <div class="error-banner">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Image trop volumineuse (max 5 Mo). Choisis une image plus légère.
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" id="bg_form">
+
+    <!-- MODE -->
+    <div class="settings-card">
+      <div class="card-section-title">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M20.188 10.934l-1.368-.768a7.975 7.975 0 0 0 0-4.332l1.368-.768a.5.5 0 0 0 .183-.683l-2-3.464a.5.5 0 0 0-.683-.183l-1.368.768A7.97 7.97 0 0 0 13 1.07V-.338A.5.5 0 0 0 12.5-1h-1a.5.5 0 0 0-.5.5V1.07a7.97 7.97 0 0 0-3.32 1.434l-1.368-.768a.5.5 0 0 0-.683.183l-2 3.464a.5.5 0 0 0 .183.683l1.368.768a7.975 7.975 0 0 0 0 4.332l-1.368.768a.5.5 0 0 0-.183.683l2 3.464a.5.5 0 0 0 .683.183l1.368-.768A7.97 7.97 0 0 0 11 22.93V24.5a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5V22.93a7.97 7.97 0 0 0 3.32-1.434l1.368.768a.5.5 0 0 0 .683-.183l2-3.464a.5.5 0 0 0-.183-.683z"/></svg>
+        Mode de fond
       </div>
-    {% endif %}
-
-    <form method="post" enctype="multipart/form-data" id="bg_form">
-      <label>Mode</label>
-      <select name="bg_mode">
-        <option value="image" {% if cfg.bg_mode == 'image' %}selected{% endif %}>Image</option>
-        <option value="color" {% if cfg.bg_mode == 'color' %}selected{% endif %}>Couleur</option>
-      </select>
-
-      <label>Couleur (si mode couleur)</label>
-      <input type="text" name="bg_color" id="bg_color_hex" value="{{ cfg.bg_color }}" placeholder="#0f172a" pattern="^#([0-9a-fA-F]{6})$" title="#RRGGBB">
-      <label style="margin-top:10px;">Palette rapide</label>
-      <input type="color" name="bg_color_picker" id="bg_color_picker" value="{{ cfg.bg_color }}" style="padding:0; height:48px; width:100%;">
-
-      <div style="margin-top:12px;">
-        <span style="display:block; margin-bottom:6px; color:#94a3b8;">Couleurs récentes</span>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          {% for col in cfg.bg_history %}
-            <button type="button"
-                    class="history-btn"
-                    data-color="{{ col }}"
-                    style="width:44px; height:44px; border-radius:10px; border:1px solid #1e293b; background: {{ col }}; cursor:pointer;"
-                    aria-label="Choisir {{ col }}">
-            </button>
-          {% endfor %}
+      <div class="card-body">
+        <div class="mode-toggle">
+          <div class="mode-option">
+            <input type="radio" name="bg_mode" id="mode_image" value="image"
+              {% if cfg.bg_mode == 'image' %}checked{% endif %}>
+            <label class="mode-label" for="mode_image">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Image
+            </label>
+          </div>
+          <div class="mode-option">
+            <input type="radio" name="bg_mode" id="mode_color" value="color"
+              {% if cfg.bg_mode == 'color' %}checked{% endif %}>
+            <label class="mode-label" for="mode_color">
+              <svg viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+              Couleur
+            </label>
+          </div>
         </div>
       </div>
+    </div>
 
-      <label>Uploader une image (jpg/png/webp) — max 5 Mo</label>
-      <input type="file" name="bg_file" id="bg_file" accept=".jpg,.jpeg,.png,.webp">
-      <div id="file_err" style="display:none; margin-top:6px; color:#fca5a5; font-size:0.9em;">Fichier trop volumineux (max 5 Mo).</div>
+    <!-- COULEUR -->
+    <div class="settings-card">
+      <div class="card-section-title">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125A1.64 1.64 0 0 1 14.441 17h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+        Couleur de fond
+      </div>
+      <div class="card-body">
 
-      {% if backgrounds %}
-        <div style="margin-top:18px;">
-          <span style="display:block; margin-bottom:8px;">Fonds déjà importés</span>
-          <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px;">
-            {% for bg in backgrounds %}
-              <label style="display:block; cursor:pointer; border:1px solid #1e293b; border-radius:12px; overflow:hidden; background:#0f172a;">
-                <input type="radio" name="bg_choice" value="{{ bg }}" {% if cfg.bg_image == bg %}checked{% endif %} style="display:none;">
-                <div style="height:90px; background:url('{{ bg }}') center/cover no-repeat;"></div>
-                <div style="padding:8px 10px; font-size:0.85em; color:#cbd5e1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                  {{ bg.split('/')[-1] }}
-                </div>
-              </label>
+        <div class="field">
+          <label>Code hexadécimal</label>
+          <div class="color-row">
+            <input type="text" name="bg_color" id="bg_color_hex"
+              value="{{ cfg.bg_color }}" placeholder="#0f172a"
+              pattern="^#([0-9a-fA-F]{6})$">
+            <div class="color-swatch-wrap">
+              <div class="color-swatch" id="swatchDisplay" style="background: {{ cfg.bg_color }};"></div>
+              <input type="color" name="bg_color_picker" id="bg_color_picker" value="{{ cfg.bg_color }}">
+            </div>
+          </div>
+        </div>
+
+        {% if cfg.bg_history %}
+        <div class="field">
+          <label>Couleurs récentes</label>
+          <div class="history-swatches">
+            {% for col in cfg.bg_history %}
+            <div class="history-swatch history-btn"
+                 data-color="{{ col }}"
+                 style="background: {{ col }};"
+                 title="{{ col }}">
+            </div>
             {% endfor %}
           </div>
         </div>
-      {% endif %}
+        {% endif %}
 
-      {% if cfg.bg_image %}
-        <p style="margin-top:10px; font-size:0.9em; color:#94a3b8;">Image actuelle : {{ cfg.bg_image }}</p>
-      {% endif %}
+      </div>
+    </div>
 
-      <button type="submit">Enregistrer</button>
-    </form>
+    <!-- IMAGE -->
+    <div class="settings-card">
+      <div class="card-section-title">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Image de fond
+      </div>
+      <div class="card-body">
 
-    <p style="margin-top:14px;"><a href="/">← Retour</a></p>
-  </main>
-  <a href="/settings"
-   title="Changer le fond"
-   style="
-     position: fixed;
-     top: 12px;
-     right: 12px;
-     font-size: 22px;
-     text-decoration: none;
-     background: rgba(0,0,0,0.6);
-     padding: 8px 10px;
-     border-radius: 10px;
-     z-index: 1000;
-   ">
-  🖼️
-</a>
+        <div class="field">
+          <label>Uploader une image <small style="font-weight:400;text-transform:none;letter-spacing:0;">(jpg / png / webp — max 5 Mo)</small></label>
+          <label class="file-upload-label" for="bg_file">
+            <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            <span id="fileLabel">Choisir un fichier…</span>
+            <input type="file" name="bg_file" id="bg_file" accept=".jpg,.jpeg,.png,.webp">
+          </label>
+          <div id="file_err" class="file-error">Fichier trop volumineux (max 5 Mo).</div>
+        </div>
+
+        {% if cfg.bg_image %}
+        <div class="field">
+          <label>Image actuelle</label>
+          <div class="current-bg-path">{{ cfg.bg_image }}</div>
+        </div>
+        {% endif %}
+
+        {% if backgrounds %}
+        <div class="field">
+          <label>Fonds importés</label>
+          <div class="bg-grid">
+            {% for bg in backgrounds %}
+            <label class="bg-option">
+              <input type="radio" name="bg_choice" value="{{ bg }}"
+                {% if cfg.bg_image == bg %}checked{% endif %}>
+              <div class="bg-thumb">
+                <div class="bg-img" style="background-image: url('{{ bg }}');"></div>
+                <div class="bg-filename">{{ bg.split('/')[-1] }}</div>
+              </div>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <button type="submit" class="btn-save">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Enregistrer les paramètres
+    </button>
+
+  </form>
+
+</main>
 
 <script>
-  const hexInput = document.getElementById('bg_color_hex');
-  const picker = document.getElementById('bg_color_picker');
-  const buttons = document.querySelectorAll('.history-btn');
-  const form = document.getElementById('bg_form');
-  const fileInput = document.getElementById('bg_file');
-  const fileErr = document.getElementById('file_err');
-  const MAX = 5 * 1024 * 1024; // 5 Mo
+const hexInput = document.getElementById('bg_color_hex');
+const picker = document.getElementById('bg_color_picker');
+const swatch = document.getElementById('swatchDisplay');
+const fileInput = document.getElementById('bg_file');
+const fileLabel = document.getElementById('fileLabel');
+const fileErr = document.getElementById('file_err');
+const form = document.getElementById('bg_form');
+const MAX = 5 * 1024 * 1024;
 
-  picker?.addEventListener('input', (e) => {
-    hexInput.value = e.target.value;
-  });
+function syncColor(val) {
+  hexInput.value = val;
+  picker.value = val;
+  swatch.style.background = val;
+}
 
-  buttons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const col = btn.dataset.color;
-      hexInput.value = col;
-      picker.value = col;
-    });
-  });
+picker.addEventListener('input', (e) => syncColor(e.target.value));
+hexInput.addEventListener('input', (e) => {
+  if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) syncColor(e.target.value);
+});
 
-  form?.addEventListener('submit', (e) => {
-    fileErr.style.display = 'none';
-    const f = fileInput?.files?.[0];
-    if (f && f.size > MAX) {
-      e.preventDefault();
-      fileErr.style.display = 'block';
-      fileInput.value = '';
-    }
-  });
+document.querySelectorAll('.history-btn').forEach(btn => {
+  btn.addEventListener('click', () => syncColor(btn.dataset.color));
+});
+
+fileInput.addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f) fileLabel.textContent = f.name;
+});
+
+form.addEventListener('submit', (e) => {
+  fileErr.style.display = 'none';
+  const f = fileInput?.files?.[0];
+  if (f && f.size > MAX) {
+    e.preventDefault();
+    fileErr.style.display = 'block';
+    fileInput.value = '';
+    fileLabel.textContent = 'Choisir un fichier…';
+  }
+});
 </script>
 
 </body>
