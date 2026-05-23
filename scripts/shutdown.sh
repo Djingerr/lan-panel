@@ -15,6 +15,7 @@ else
 fi
 
 ssh \
+  -i /root/.ssh/clef_pub
   -o BatchMode=yes \
   -o ConnectTimeout=5 \
   -o StrictHostKeyChecking=no \
