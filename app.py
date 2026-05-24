@@ -1,4 +1,6 @@
-from flask import Flask, render_template, redirect, request, Response
+import re
+import threading
+from flask import Flask, render_template, redirect, request, Response, jsonify
 import time
 import os
 import json
@@ -23,6 +25,18 @@ HISTORY_KEEPALIVE = 30 * 60         # on ajoute un point au moins toutes les 30 
 
 BACKGROUND_DIR = os.path.join(CODE_DIR, "static", "backgrounds")
 ALLOWED_EXT = {"jpg", "jpeg", "png", "webp"}
+
+# Cache mémoire des statuts machines, alimenté par un thread de fond.
+STATUS_REFRESH_INTERVAL = 30  # secondes
+STATUS_CACHE_LOCK = threading.Lock()
+STATUS_CACHE = {}  # ip -> {"status": "ON"|"OFF", "ts": int}
+_thread_started_lock = threading.Lock()
+_thread_started = False
+
+# Regex de validation pour /add
+IP_RE = re.compile(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$")
+MAC_RE = re.compile(r"^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$")
+SSH_USER_RE = re.compile(r"^[a-z_][a-z0-9_-]{0,31}$")
 
 static_path = os.path.join(CODE_DIR, "static")
 app = Flask(__name__, static_folder=static_path)
@@ -137,6 +151,69 @@ def run_status(ip: str) -> str:
         return "OFF"
 
 
+def get_cached_status(ip: str) -> str:
+    if not ip:
+        return "OFF"
+    with STATUS_CACHE_LOCK:
+        entry = STATUS_CACHE.get(ip)
+    return entry["status"] if entry else "OFF"
+
+
+def refresh_statuses_once():
+    machines = load_machines()
+    for m in machines:
+        ip = m.get("ip", "")
+        name = m.get("name", "UNKNOWN")
+        if not ip:
+            continue
+        status = run_status(ip)
+        with STATUS_CACHE_LOCK:
+            STATUS_CACHE[ip] = {"status": status, "ts": int(time.time())}
+        try:
+            log_status(name, status)
+        except Exception as e:
+            print(f"log_status failed for {name}: {e}")
+
+
+def status_refresher_loop():
+    while True:
+        try:
+            refresh_statuses_once()
+        except Exception as e:
+            print(f"Status refresher error: {e}")
+        time.sleep(STATUS_REFRESH_INTERVAL)
+
+
+def start_status_thread():
+    # Le thread fait lui-même le premier ping dès qu'il démarre : aucun
+    # blocage à l'import du module, donc démarrage instantané. Le cache
+    # renvoie "OFF" pour les machines pas encore pingées ; le polling JS
+    # affichera le vrai statut dans les premières secondes.
+    global _thread_started
+    with _thread_started_lock:
+        if _thread_started:
+            return
+        _thread_started = True
+    ensure_dirs()
+    t = threading.Thread(target=status_refresher_loop, daemon=True)
+    t.start()
+
+
+def valid_ip(ip: str) -> bool:
+    m = IP_RE.match(ip or "")
+    if not m:
+        return False
+    return all(0 <= int(p) <= 255 for p in m.groups())
+
+
+def valid_mac(mac: str) -> bool:
+    return bool(MAC_RE.match(mac or ""))
+
+
+def valid_ssh_user(u: str) -> bool:
+    return bool(SSH_USER_RE.match(u or ""))
+
+
 def fmt_dt(ts):
     return datetime.fromtimestamp(ts).strftime("%d/%m %H:%M")
 
@@ -173,17 +250,16 @@ def allowed_file(filename: str) -> bool:
     return ext in ALLOWED_EXT
 
 
-@app.route("/")
-def index():
+def _dashboard_context(err=None, form_values=None):
     ensure_dirs()
     cfg = load_config()
     machines = load_machines()
 
     online_count = 0
     for m in machines:
-        status = run_status(m.get("ip", ""))
+        status = get_cached_status(m.get("ip", ""))
         m["status"] = status
-        history = log_status(m.get("name", "UNKNOWN"), status)
+        history = load_history(m.get("name", "UNKNOWN"))
         m["last_transition"] = get_last_transition(history)
         m["history_points"] = len(history)
         if status == "ON":
@@ -195,8 +271,48 @@ def index():
         "offline": max(len(machines) - online_count, 0),
         "updated_at": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     }
+    return {
+        "machines": machines,
+        "cfg": cfg,
+        "summary": summary,
+        "err": err,
+        "form_values": form_values or {},
+    }
 
-    return render_template("index.html", machines=machines, cfg=cfg, summary=summary)
+
+@app.route("/")
+def index():
+    ctx = _dashboard_context(err=request.args.get("err"))
+    return render_template("index.html", **ctx)
+
+
+@app.route("/api/status")
+def api_status():
+    machines = load_machines()
+    out = []
+    online = 0
+    for m in machines:
+        ip = m.get("ip", "")
+        name = m.get("name", "")
+        status = get_cached_status(ip)
+        if status == "ON":
+            online += 1
+        history = load_history(name)
+        out.append({
+            "name": name,
+            "ip": ip,
+            "status": status,
+            "last_transition": get_last_transition(history),
+        })
+    return jsonify({
+        "machines": out,
+        "summary": {
+            "total": len(machines),
+            "online": online,
+            "offline": max(len(machines) - online, 0),
+            "updated_at": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        },
+    })
 
 
 @app.route("/history/<name>.svg")
@@ -295,19 +411,20 @@ def history_svg(name):
     return Response(svg, mimetype="image/svg+xml")
 
 
-@app.route("/wake/<name>")
+@app.route("/wake/<name>", methods=["POST"])
 def wake(name):
     machines = load_machines()
     for m in machines:
         if m.get("name") == name:
             try:
                 subprocess.Popen([f"{APP_DIR}/scripts/wake.sh", m.get("mac", "")])
-            except Exception:
-                pass
-    return redirect("/")
+                return jsonify({"ok": True, "message": f"Réveil envoyé à {name}..."})
+            except Exception as e:
+                return jsonify({"ok": False, "message": str(e)}), 500
+    return jsonify({"ok": False, "message": "Machine inconnue"}), 404
 
 
-@app.route("/shutdown/<name>")
+@app.route("/shutdown/<name>", methods=["POST"])
 def shutdown(name):
     machines = load_machines()
     for m in machines:
@@ -323,19 +440,40 @@ def shutdown(name):
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL
                 )
+                return jsonify({"ok": True, "message": f"Extinction envoyée à {name}..."})
             except Exception as e:
-                print(f"Shutdown error for {name}: {e}")
-    return redirect("/")
+                return jsonify({"ok": False, "message": str(e)}), 500
+    return jsonify({"ok": False, "message": "Machine inconnue"}), 404
 
 
 @app.route("/add", methods=["POST"])
 def add():
+    name = request.form.get("name", "").strip()
+    ip = request.form.get("ip", "").strip()
+    mac = request.form.get("mac", "").strip()
+    ssh_user = request.form.get("ssh_user", "").strip()
+    form_values = {"name": name, "ip": ip, "mac": mac, "ssh_user": ssh_user}
+
+    err = None
+    if not name:
+        err = "invalid_name"
+    elif not valid_ip(ip):
+        err = "invalid_ip"
+    elif mac and not valid_mac(mac):
+        err = "invalid_mac"
+    elif ssh_user and not valid_ssh_user(ssh_user):
+        err = "invalid_ssh_user"
+
+    if err:
+        ctx = _dashboard_context(err=err, form_values=form_values)
+        return render_template("index.html", **ctx), 400
+
     machines = load_machines()
     machines.append({
-        "name": request.form.get("name", "").strip(),
-        "ip": request.form.get("ip", "").strip(),
-        "mac": request.form.get("mac", "").strip(),
-        "ssh_user": request.form.get("ssh_user", "").strip()
+        "name": name,
+        "ip": ip,
+        "mac": mac,
+        "ssh_user": ssh_user
     })
     save_machines(machines)
     return redirect("/")
@@ -395,5 +533,11 @@ def too_large(e):
     return redirect("/settings?err=too_large")
 
 
+# Démarre le thread de refresh dès l'import du module, afin que ça fonctionne
+# aussi bien avec `python app.py` qu'avec `waitress-serve --call app:app`.
+start_status_thread()
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=8080)

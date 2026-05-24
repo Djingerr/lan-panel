@@ -528,7 +528,11 @@ main {
   transition: all 0.18s;
   flex: 1;
   justify-content: center;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
 }
+.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .action-btn svg {
   width: 13px; height: 13px;
@@ -597,6 +601,63 @@ main {
   font-size: 0.8rem;
 }
 
+/* ── ERROR BANNER ── */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--red-dim);
+  border: 1px solid var(--red-border);
+  border-radius: var(--r);
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-size: 0.85rem;
+  color: var(--red);
+}
+.error-banner svg {
+  width: 16px; height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+/* ── TOASTS ── */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  background: rgba(10,18,40,0.95);
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--cyan);
+  border-radius: var(--r-sm);
+  padding: 12px 18px;
+  color: var(--text);
+  font-size: 0.85rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  min-width: 220px;
+  max-width: 360px;
+  pointer-events: auto;
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast.show { opacity: 1; transform: translateX(0); }
+.toast.toast-success { border-left-color: var(--green); }
+.toast.toast-warn { border-left-color: var(--amber); }
+.toast.toast-error { border-left-color: var(--red); }
+
 /* ── RESPONSIVE ── */
 @media (max-width: 680px) {
   header { padding: 0 16px; }
@@ -628,6 +689,11 @@ main {
   .summary { grid-template-columns: 1fr 1fr; }
   .stat-value { font-size: 1.4rem; }
 }
+
+@media (max-width: 480px) {
+  .toast-container { left: 12px; right: 12px; bottom: 12px; }
+  .toast { min-width: 0; max-width: none; }
+}
 </style>
 </head>
 
@@ -644,12 +710,10 @@ main {
   </div>
 
   <div class="header-right">
-    {% if summary.online > 0 %}
-    <div class="uptime-badge">
+    <div class="uptime-badge" id="uptimeBadge"{% if summary.online == 0 %} style="display:none"{% endif %}>
       <span class="dot"></span>
-      {{ summary.online }}/{{ summary.total }} EN LIGNE
+      <span class="badge-text">{{ summary.online }}/{{ summary.total }} EN LIGNE</span>
     </div>
-    {% endif %}
     <a href="/settings" class="settings-btn" title="Paramètres">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </a>
@@ -657,6 +721,18 @@ main {
 </header>
 
 <main>
+
+  {% if err %}
+  <div class="error-banner">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    {% if err == 'invalid_name' %}Nom requis.
+    {% elif err == 'invalid_ip' %}Adresse IP invalide (attendu&nbsp;: 192.168.1.10).
+    {% elif err == 'invalid_mac' %}Adresse MAC invalide (attendu&nbsp;: AA:BB:CC:DD:EE:FF).
+    {% elif err == 'invalid_ssh_user' %}Utilisateur SSH invalide (lettres minuscules, chiffres, _ ou -).
+    {% else %}Erreur&nbsp;: {{ err }}.
+    {% endif %}
+  </div>
+  {% endif %}
 
   <!-- SUMMARY STATS -->
   <div class="summary">
@@ -688,29 +764,38 @@ main {
       <span class="machine-count">{{ summary.total }}</span>
     </div>
 
+    {% set form_open = form_values and (form_values.name or form_values.ip or form_values.mac or form_values.ssh_user) %}
     <button class="add-toggle-btn" onclick="document.getElementById('addForm').classList.toggle('open')">
       <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Ajouter une machine
     </button>
 
-    <div class="add-form" id="addForm">
+    <div class="add-form{% if form_open %} open{% endif %}" id="addForm">
       <form method="post" action="/add">
         <div class="form-grid">
           <div class="form-field">
             <label>Nom</label>
-            <input type="text" name="name" placeholder="ex: PC-Bureau" required>
+            <input type="text" name="name" placeholder="ex: PC-Bureau" required
+                   value="{{ form_values.name|default('', true) }}"
+                   {% if err == 'invalid_name' %}autofocus{% endif %}>
           </div>
           <div class="form-field">
             <label>Adresse IP</label>
-            <input type="text" name="ip" placeholder="192.168.1.x" required>
+            <input type="text" name="ip" placeholder="192.168.1.x" required
+                   value="{{ form_values.ip|default('', true) }}"
+                   {% if err == 'invalid_ip' %}autofocus{% endif %}>
           </div>
           <div class="form-field">
             <label>Adresse MAC</label>
-            <input type="text" name="mac" placeholder="AA:BB:CC:DD:EE:FF">
+            <input type="text" name="mac" placeholder="AA:BB:CC:DD:EE:FF"
+                   value="{{ form_values.mac|default('', true) }}"
+                   {% if err == 'invalid_mac' %}autofocus{% endif %}>
           </div>
           <div class="form-field">
             <label>Utilisateur SSH</label>
-            <input type="text" name="ssh_user" placeholder="pi">
+            <input type="text" name="ssh_user" placeholder="pi"
+                   value="{{ form_values.ssh_user|default('', true) }}"
+                   {% if err == 'invalid_ssh_user' %}autofocus{% endif %}>
           </div>
         </div>
         <button type="submit" class="btn-submit">
@@ -722,10 +807,10 @@ main {
   </div>
 
   <!-- MACHINE GRID -->
-  <div class="grid">
+  <div class="grid" id="machineGrid">
     {% if machines %}
       {% for m in machines %}
-      <div class="card card-{{ m.status | lower }}" style="animation-delay: {{ loop.index0 * 0.06 }}s">
+      <div class="card card-{{ m.status | lower }}" data-machine="{{ m.name }}" data-status="{{ m.status }}" style="animation-delay: {{ loop.index0 * 0.06 }}s">
 
         <div class="card-header">
           <div class="card-name-row">
@@ -744,7 +829,7 @@ main {
           </div>
           <div class="transition-info">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            {{ m.last_transition }}
+            <span class="transition-text">{{ m.last_transition }}</span>
           </div>
         </div>
 
@@ -753,15 +838,14 @@ main {
         </div>
 
         <div class="card-actions">
-          <a href="/wake/{{ m.name }}" class="action-btn btn-wake">
+          <button type="button" class="action-btn btn-wake" data-action="wake" data-name="{{ m.name }}">
             <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             Allumer
-          </a>
-          <a href="/shutdown/{{ m.name }}" class="action-btn btn-shutdown"
-             onclick="return confirm('Éteindre {{ m.name }} ?')">
+          </button>
+          <button type="button" class="action-btn btn-shutdown" data-action="shutdown" data-name="{{ m.name }}">
             <svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
             Éteindre
-          </a>
+          </button>
           <a href="/delete/{{ m.name }}" class="action-btn btn-delete"
              onclick="return confirm('Supprimer {{ m.name }} ?')" title="Supprimer">
             <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
@@ -782,5 +866,141 @@ main {
 
 </main>
 </div>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script>
+(function () {
+  const toastContainer = document.getElementById('toastContainer');
+
+  function showToast(message, type) {
+    const t = document.createElement('div');
+    t.className = 'toast toast-' + (type || 'info');
+    t.textContent = message;
+    toastContainer.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('show'));
+    setTimeout(() => {
+      t.classList.remove('show');
+      setTimeout(() => t.remove(), 300);
+    }, 3500);
+  }
+
+  function escapeAttr(s) {
+    return (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/"/g, '\\"');
+  }
+
+  // Recharge le SVG d'historique d'une carte sans flicker :
+  // on précharge la nouvelle image, puis on swap le src une fois prête.
+  function refreshGraph(card) {
+    const img = card && card.querySelector('.graph-wrap img');
+    if (!img) return;
+    const base = (img.src || '').split('?')[0];
+    if (!base) return;
+    const next = base + '?t=' + Date.now();
+    const pre = new Image();
+    pre.onload = () => { img.src = next; };
+    pre.onerror = () => { /* on garde l'ancien src */ };
+    pre.src = next;
+  }
+
+  async function doAction(name, action, btn) {
+    if (action === 'shutdown') {
+      if (!confirm('Confirmer l’extinction de ' + name + ' ?')) return;
+    }
+    const verb = action === 'wake' ? 'Réveil' : 'Extinction';
+    const tone = action === 'wake' ? 'success' : 'warn';
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch('/' + action + '/' + encodeURIComponent(name), {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' }
+      });
+      let data = {};
+      try { data = await res.json(); } catch (_) { data = { ok: res.ok }; }
+      if (res.ok && data.ok !== false) {
+        showToast(data.message || (verb + ' envoyé à ' + name + '...'), tone);
+      } else {
+        showToast('Erreur : ' + (data.message || ('HTTP ' + res.status)), 'error');
+      }
+    } catch (e) {
+      showToast('Erreur réseau : ' + e.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+    setTimeout(refreshStatuses, 1500);
+    setTimeout(refreshStatuses, 5000);
+  }
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    e.preventDefault();
+    doAction(btn.dataset.name, btn.dataset.action, btn);
+  });
+
+  async function refreshStatuses() {
+    try {
+      const res = await fetch('/api/status', { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) return;
+      const data = await res.json();
+
+      const setText = (sel, val) => {
+        const el = document.querySelector(sel);
+        if (el && val !== undefined && val !== null) el.textContent = val;
+      };
+      setText('.stat-card.total .stat-value', data.summary.total);
+      setText('.stat-card.online .stat-value', data.summary.online);
+      setText('.stat-card.offline .stat-value', data.summary.offline);
+      setText('.stat-card.time .stat-value', data.summary.updated_at);
+
+      const ub = document.getElementById('uptimeBadge');
+      if (ub) {
+        const txt = ub.querySelector('.badge-text');
+        if (data.summary.online > 0) {
+          ub.style.display = '';
+          if (txt) txt.textContent = data.summary.online + '/' + data.summary.total + ' EN LIGNE';
+        } else {
+          ub.style.display = 'none';
+        }
+      }
+
+      for (const m of data.machines) {
+        const card = document.querySelector('[data-machine="' + escapeAttr(m.name) + '"]');
+        if (!card) continue;
+        const newStatus = m.status || 'OFF';
+        const prevStatus = card.dataset.status || '';
+        const lower = newStatus.toLowerCase();
+
+        card.classList.remove('card-on', 'card-off');
+        card.classList.add('card-' + lower);
+
+        const dot = card.querySelector('.status-dot');
+        if (dot) {
+          dot.classList.remove('on', 'off');
+          dot.classList.add(lower);
+        }
+        const badge = card.querySelector('.status-badge');
+        if (badge) {
+          badge.classList.remove('on', 'off');
+          badge.classList.add(lower);
+          badge.textContent = newStatus;
+        }
+        const tt = card.querySelector('.transition-text');
+        if (tt) tt.textContent = m.last_transition;
+
+        if (prevStatus && prevStatus !== newStatus) {
+          refreshGraph(card);
+        }
+        card.dataset.status = newStatus;
+      }
+    } catch (e) {
+      // silencieux, on retentera au prochain tick
+    }
+  }
+
+  setInterval(refreshStatuses, 10000);
+})();
+</script>
+
 </body>
 </html>
