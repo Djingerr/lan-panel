@@ -998,7 +998,8 @@ main {
     }
   }
 
-  setInterval(refreshStatuses, 10000);
+  // 30s : aligné sur le refresh backend ; évite d'épuiser la SD du Pi 1.
+  setInterval(refreshStatuses, 30000);
 })();
 </script>
 
