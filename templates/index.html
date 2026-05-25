@@ -998,8 +998,8 @@ main {
     }
   }
 
-  // 30s : aligné sur le refresh backend ; évite d'épuiser la SD du Pi 1.
-  setInterval(refreshStatuses, 30000);
+  // 15s : polling client ; le refresh backend (60s) reste la source de vérité.
+  setInterval(refreshStatuses, 15000);
 })();
 </script>
 

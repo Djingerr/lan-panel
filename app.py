@@ -27,7 +27,7 @@ BACKGROUND_DIR = os.path.join(CODE_DIR, "static", "backgrounds")
 ALLOWED_EXT = {"jpg", "jpeg", "png", "webp"}
 
 # Cache mémoire des statuts machines, alimenté par un thread de fond.
-STATUS_REFRESH_INTERVAL = 30  # secondes
+STATUS_REFRESH_INTERVAL = 60  # secondes
 STATUS_CACHE_LOCK = threading.Lock()
 STATUS_CACHE = {}  # ip -> {"status": "ON"|"OFF", "ts": int}
 _thread_started_lock = threading.Lock()
@@ -159,6 +159,14 @@ def get_cached_status(ip: str) -> str:
     return entry["status"] if entry else "OFF"
 
 
+def get_cached_last_transition(ip: str) -> str:
+    if not ip:
+        return "En attente..."
+    with STATUS_CACHE_LOCK:
+        entry = STATUS_CACHE.get(ip)
+    return entry.get("last_transition", "En attente...") if entry else "En attente..."
+
+
 def refresh_statuses_once():
     machines = load_machines()
     for m in machines:
@@ -167,21 +175,28 @@ def refresh_statuses_once():
         if not ip:
             continue
         status = run_status(ip)
-        with STATUS_CACHE_LOCK:
-            STATUS_CACHE[ip] = {"status": status, "ts": int(time.time())}
         try:
-            log_status(name, status)
+            history = log_status(name, status)
+            last_transition = get_last_transition(history)
         except Exception as e:
             print(f"log_status failed for {name}: {e}")
+            last_transition = "En attente..."
+        with STATUS_CACHE_LOCK:
+            STATUS_CACHE[ip] = {
+                "status": status,
+                "ts": int(time.time()),
+                "last_transition": last_transition,
+            }
 
 
 def status_refresher_loop():
     while True:
+        next_run = time.time() + STATUS_REFRESH_INTERVAL
         try:
             refresh_statuses_once()
         except Exception as e:
             print(f"Status refresher error: {e}")
-        time.sleep(STATUS_REFRESH_INTERVAL)
+        time.sleep(max(0, next_run - time.time()))
 
 
 def start_status_thread():
@@ -257,11 +272,10 @@ def _dashboard_context(err=None, form_values=None):
 
     online_count = 0
     for m in machines:
-        status = get_cached_status(m.get("ip", ""))
+        ip = m.get("ip", "")
+        status = get_cached_status(ip)
         m["status"] = status
-        history = load_history(m.get("name", "UNKNOWN"))
-        m["last_transition"] = get_last_transition(history)
-        m["history_points"] = len(history)
+        m["last_transition"] = get_cached_last_transition(ip)
         if status == "ON":
             online_count += 1
 
@@ -297,12 +311,11 @@ def api_status():
         status = get_cached_status(ip)
         if status == "ON":
             online += 1
-        history = load_history(name)
         out.append({
             "name": name,
             "ip": ip,
             "status": status,
-            "last_transition": get_last_transition(history),
+            "last_transition": get_cached_last_transition(ip),
         })
     return jsonify({
         "machines": out,
